@@ -281,6 +281,11 @@ enum ReadFrom {
     Stdin(String),
 }
 
+fn vec_remove_item<T>(vec: &mut Vec<T>, item: &T) -> Option<T> {
+    let pos = vec.iter().position(|x| *x == *item)?;
+    Some(vec.remove(pos))
+}
+
 impl<'test> TestCx<'test> {
     /// Code executed for each revision in turn (or, if there are no
     /// revisions, exactly once, with revision == None).
@@ -1769,7 +1774,7 @@ impl<'test> TestCx<'test> {
             // Normally, every 'extern-private' has a correspodning 'aux-build'
             // entry. If so, we remove it from our list of private crates,
             // and add an '--extern-private' flag to rustc
-            if extern_priv.remove_item(&trimmed).is_some() {
+            if vec_remove_item(&mut extern_priv, &trimmed).is_some() {
                 add_extern_priv(&trimmed, dylib);
             }
 
