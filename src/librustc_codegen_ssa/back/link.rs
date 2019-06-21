@@ -25,6 +25,7 @@ use tempfile::{Builder as TempFileBuilder, TempDir};
 
 use std::ascii;
 use std::char;
+use std::borrow::Cow;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -417,6 +418,93 @@ fn link_staticlib<'a, B: ArchiveBuilder<'a>>(sess: &'a Session,
     }
 }
 
+#[cfg(not(windows))]
+fn escape_win_oemcp_str(s: &[u8]) -> Result<String, &[u8]> {
+    Err(s)
+}
+
+#[cfg(windows)]
+fn escape_win_oemcp_str(s: &[u8]) -> Result<String, &[u8]> {
+    use std::ffi::OsString;
+    use std::os::raw::{c_char, c_int, c_uint, c_ulong};
+    use std::os::windows::ffi::OsStringExt;
+    use std::ptr::null_mut;
+    type UINT = c_uint;
+    type DWORD = c_ulong;
+    type LPCSTR = *const c_char;
+    type LPWSTR = *mut u16;
+    const CP_OEMCP: DWORD = 1;
+    const MB_ERR_INVALID_CHARS: DWORD = 0x00000008;
+    extern "system" {
+        fn MultiByteToWideChar(
+            CodePage: UINT,
+            dwFlags: DWORD,
+            lpMultiByteStr: LPCSTR,
+            cbMultiByte: c_int,
+            lpWideCharStr: LPWSTR,
+            cchWideChar: c_int,
+        ) -> c_int;
+    }
+    if s.is_empty() {
+        return Ok(String::new());
+    }
+    if s.len() > libc::INT_MAX as _ {
+        return Err(s);
+    }
+    let len = unsafe {
+        let l = MultiByteToWideChar(
+            CP_OEMCP,
+            MB_ERR_INVALID_CHARS,
+            s.as_ptr() as _,
+            s.len() as c_int,
+            null_mut(),
+            0,
+        );
+        match l {
+            0 => return Err(s),
+            x => x,
+        }
+    };
+    assert!(len > 0);
+    let mut widestr = vec![0u16; len as usize];
+    unsafe {
+        let l = MultiByteToWideChar(
+            CP_OEMCP,
+            MB_ERR_INVALID_CHARS,
+            s.as_ptr() as _,
+            s.len() as c_int,
+            widestr.as_mut_ptr(),
+            len,
+        );
+        assert_eq!(l, len);
+    }
+    let os_string = OsString::from_wide(&widestr[..]);
+    let x = match os_string.into_string() {
+        Err(_) => return Err(s),
+        Ok(x) => x,
+    };
+    Ok(x)
+}
+
+fn escape_string(s: &[u8]) -> Cow<'_, str> {
+    // UTF-8
+    if let Ok(x) = str::from_utf8(s) {
+        return Cow::Borrowed(x);
+    }
+
+    // Windows OEMCP
+    if let Ok(os) = escape_win_oemcp_str(s) {
+        let mut x = "OEM codepage output: ".to_string();
+        x += &os;
+        return Cow::Owned(x);
+    }
+
+    // Fallback: Non-UTF-8
+    let mut x = "Non-UTF-8 output: ".to_string();
+    x.extend(s.iter().flat_map(|&b| ascii::escape_default(b)).map(char::from));
+    Cow::Owned(x)
+}
+
 // Create a dynamic library or executable
 //
 // This will invoke the system linker/cc to create the resulting file. This
@@ -586,16 +674,6 @@ fn link_natively<'a, B: ArchiveBuilder<'a>>(sess: &'a Session,
 
     match prog {
         Ok(prog) => {
-            fn escape_string(s: &[u8]) -> String {
-                str::from_utf8(s).map(|s| s.to_owned())
-                    .unwrap_or_else(|_| {
-                        let mut x = "Non-UTF-8 output: ".to_string();
-                        x.extend(s.iter()
-                                  .flat_map(|&b| ascii::escape_default(b))
-                                  .map(char::from));
-                        x
-                    })
-            }
             if !prog.status.success() {
                 let mut output = prog.stderr.clone();
                 output.extend_from_slice(&prog.stdout);
