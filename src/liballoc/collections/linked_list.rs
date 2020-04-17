@@ -1191,6 +1191,7 @@ impl<T> IterMut<'_, T> {
 ///
 /// When created, cursors start at the front of the list, or the "ghost" non-element if the list is empty.
 #[unstable(feature = "linked_list_cursors", issue = "58533")]
+#[derive(Clone)]
 pub struct Cursor<'a, T: 'a> {
     index: usize,
     current: Option<NonNull<Node<T>>>,
