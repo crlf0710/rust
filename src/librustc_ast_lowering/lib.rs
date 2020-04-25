@@ -36,6 +36,7 @@
 #![feature(specialization)]
 #![feature(or_patterns)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 use rustc_ast::ast;
 use rustc_ast::ast::*;

@@ -40,6 +40,7 @@ pub fn expand_concat_idents<'cx>(
     }
 
     let ident = ast::Ident::new(Symbol::intern(&res_str), cx.with_call_site_ctxt(sp));
+    cx.parse_sess.symbol_gallery.insert(ident.name, ident.span);
 
     struct ConcatIdentsResult {
         ident: ast::Ident,

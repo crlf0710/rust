@@ -4,6 +4,7 @@
 #![feature(in_band_lifetimes)]
 #![feature(nll)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate rustc_middle;

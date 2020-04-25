@@ -7,6 +7,7 @@
 #![feature(proc_macro_internals)]
 #![feature(proc_macro_span)]
 #![feature(try_blocks)]
+#![allow(unknown_lints, confusable_idents)]
 
 extern crate proc_macro as pm;
 

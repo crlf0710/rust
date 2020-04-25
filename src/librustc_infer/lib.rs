@@ -22,6 +22,7 @@
 #![feature(in_band_lifetimes)]
 #![feature(crate_visibility_modifier)]
 #![recursion_limit = "512"] // For rustdoc
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate rustc_macros;

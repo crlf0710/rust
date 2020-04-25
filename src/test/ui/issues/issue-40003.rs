@@ -1,5 +1,7 @@
 // run-pass
 #![allow(unused_must_use)]
+#![allow(confusable_idents)]
+
 fn main() {
     if false { test(); }
 }

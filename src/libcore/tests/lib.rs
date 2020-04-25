@@ -43,6 +43,7 @@
 #![feature(leading_trailing_ones)]
 #![feature(const_forget)]
 #![feature(option_unwrap_none)]
+#![allow(unknown_lints, confusable_idents)]
 
 extern crate test;
 

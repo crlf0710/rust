@@ -23,6 +23,7 @@
 #![feature(associated_type_bounds)]
 #![feature(thread_id_value)]
 #![allow(rustc::default_hash_types)]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate log;

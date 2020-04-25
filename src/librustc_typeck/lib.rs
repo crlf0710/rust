@@ -67,6 +67,7 @@ This API is completely unstable and subject to change.
 #![feature(never_type)]
 #![feature(slice_partition_dedup)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate log;

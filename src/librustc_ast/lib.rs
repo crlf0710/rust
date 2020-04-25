@@ -18,6 +18,7 @@
 #![feature(try_trait)]
 #![feature(unicode_internals)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_export]
 macro_rules! unwrap_or {

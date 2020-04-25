@@ -52,6 +52,7 @@
 #![feature(hash_raw_entry)]
 #![feature(int_error_matching)]
 #![recursion_limit = "512"]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate bitflags;
