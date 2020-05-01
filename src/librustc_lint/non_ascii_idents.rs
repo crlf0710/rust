@@ -72,6 +72,35 @@ fn calc_skeleton(symbol_str: SymbolStr, buffer: &'_ mut String) -> CowBoxSymStr 
     }
 }
 
+fn is_in_ascii_confusable_closure(c: char) -> bool {
+    // FIXME: move this table to `unicode_security` crate.
+    // data here corresponds to Unicode 13.
+    const ASCII_CONFUSABLE_CLOSURE: &[(u64, u64)] = &[(0x00, 0x7f), (0xba, 0xba), (0x2080, 0x2080)];
+    let c = c as u64;
+    for &(range_start, range_end) in ASCII_CONFUSABLE_CLOSURE {
+        if c >= range_start && c <= range_end {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_in_ascii_confusable_closure_relevant_list(c: char) -> bool {
+    // FIXME: move this table to `unicode_security` crate.
+    // data here corresponds to Unicode 13.
+    const ASCII_CONFUSABLE_CLOSURE_RELEVANT_LIST: &[u64] = &[
+        0x22, 0x25, 0x27, 0x2f, 0x30, 0x31, 0x49, 0x4f, 0x60, 0x6c, 0x6d, 0x6e, 0x72, 0x7c, 0xba,
+        0x2080,
+    ];
+    let c = c as u64;
+    for &item in ASCII_CONFUSABLE_CLOSURE_RELEVANT_LIST {
+        if c == item {
+            return true;
+        }
+    }
+    false
+}
+
 impl EarlyLintPass for NonAsciiIdents {
     fn check_crate(&mut self, cx: &EarlyContext<'_>, _: &ast::Crate) {
         use rustc_session::lint::Level;
@@ -80,9 +109,26 @@ impl EarlyLintPass for NonAsciiIdents {
         }
         let symbols = cx.sess.parse_sess.symbol_gallery.symbols.lock();
         let mut symbol_strs_and_spans = Vec::with_capacity(symbols.len());
+        let mut in_fast_path = true;
         for (symbol, sp) in symbols.iter() {
+            // fast path
             let symbol_str = symbol.as_str();
-            symbol_strs_and_spans.push((symbol_str, *sp));
+            if !symbol_str.chars().all(is_in_ascii_confusable_closure) {
+                // fallback to slow path.
+                symbol_strs_and_spans.clear();
+                in_fast_path = false;
+                break;
+            }
+            if symbol_str.chars().any(is_in_ascii_confusable_closure_relevant_list) {
+                symbol_strs_and_spans.push((symbol_str, *sp));
+            }
+        }
+        if !in_fast_path {
+            // slow path
+            for (symbol, sp) in symbols.iter() {
+                let symbol_str = symbol.as_str();
+                symbol_strs_and_spans.push((symbol_str, *sp));
+            }
         }
         drop(symbols);
         symbol_strs_and_spans.sort_by_key(|x| x.0.clone());
