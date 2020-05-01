@@ -19,6 +19,7 @@
 #![feature(str_strip)]
 #![feature(option_zip)]
 #![recursion_limit = "512"] // For rustdoc
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate rustc_macros;

@@ -1,5 +1,6 @@
 // run-pass
 #![allow(unused_must_use)]
+#![allow(unknown_lints, confusable_idents)]
 fn main() {
     if false { test(); }
 }

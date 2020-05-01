@@ -15,6 +15,7 @@
 #![feature(vec_remove_item)]
 #![feature(split_inclusive)]
 #![feature(binary_heap_retain)]
+#![allow(unknown_lints, confusable_idents)]
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};

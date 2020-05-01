@@ -10,6 +10,7 @@
 #![feature(or_patterns)]
 #![feature(specialization)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate rustc_data_structures;

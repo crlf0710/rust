@@ -8,6 +8,7 @@
 #![feature(trusted_len)]
 #![feature(associated_type_bounds)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 //! This crate contains codegen code that is used by all codegen backends (LLVM and others).
 //! The backend-agnostic functions of this crate use functions defined in various traits that

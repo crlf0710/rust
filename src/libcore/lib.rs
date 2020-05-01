@@ -62,6 +62,7 @@
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
 #![deny(intra_doc_link_resolution_failure)] // rustdoc is run without -D warnings
+#![allow(unknown_lints, confusable_idents)]
 #![allow(explicit_outlives_requirements)]
 #![allow(incomplete_features)]
 #![feature(allow_internal_unstable)]

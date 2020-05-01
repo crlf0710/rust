@@ -14,6 +14,7 @@
 #![feature(crate_visibility_modifier)]
 #![feature(never_type)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 extern crate env_logger;
 extern crate rustc_ast;

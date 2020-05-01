@@ -15,10 +15,9 @@ declare_lint! {
     "detects uncommon Unicode codepoints in identifiers"
 }
 
-// FIXME: Change this to warn.
 declare_lint! {
     pub CONFUSABLE_IDENTS,
-    Allow,
+    Warn,
     "detects uncommon Unicode codepoints in identifiers"
 }
 

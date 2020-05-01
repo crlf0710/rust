@@ -28,6 +28,7 @@ Rust MIR: a lowered representation of Rust.
 #![feature(option_expect_none)]
 #![feature(or_patterns)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 #[macro_use]
 extern crate log;

@@ -10,6 +10,7 @@
 #![feature(specialization)]
 #![feature(stmt_expr_attributes)]
 #![recursion_limit = "256"]
+#![allow(unknown_lints, confusable_idents)]
 
 extern crate proc_macro;
 
