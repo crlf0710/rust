@@ -1,9 +1,11 @@
 #![feature(non_ascii_idents)]
 #![deny(confusable_idents)]
-#![allow(uncommon_codepoints, non_upper_case_globals)]
+#![allow(uncommon_codepoints, non_upper_case_globals, confusable_idents_ascii)]
 
 const ｓ: usize = 42; //~ ERROR identifier pair considered confusable
 
 fn main() {
     let s = "rust";
+    let s1 = "";
+    let sl = "";
 }

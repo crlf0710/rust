@@ -24,7 +24,13 @@ declare_lint! {
     "detects visually confusable pairs between identifiers"
 }
 
-declare_lint_pass!(NonAsciiIdents => [NON_ASCII_IDENTS, UNCOMMON_CODEPOINTS, CONFUSABLE_IDENTS]);
+declare_lint! {
+    pub CONFUSABLE_IDENTS_ASCII,
+    Allow,
+    "extends `confusable_idents` to include confusable pairs between ASCII identifiers"
+}
+
+declare_lint_pass!(NonAsciiIdents => [NON_ASCII_IDENTS, UNCOMMON_CODEPOINTS, CONFUSABLE_IDENTS, CONFUSABLE_IDENTS_ASCII]);
 
 enum CowBoxSymStr {
     Interned(SymbolStr),
@@ -104,7 +110,9 @@ fn is_in_ascii_confusable_closure_relevant_list(c: char) -> bool {
 impl EarlyLintPass for NonAsciiIdents {
     fn check_crate(&mut self, cx: &EarlyContext<'_>, _: &ast::Crate) {
         use rustc_session::lint::Level;
-        if cx.builder.lint_level(CONFUSABLE_IDENTS).0 == Level::Allow {
+        if cx.builder.lint_level(CONFUSABLE_IDENTS).0 == Level::Allow
+            && cx.builder.lint_level(CONFUSABLE_IDENTS_ASCII).0 == Level::Allow
+        {
             return;
         }
         let symbols = cx.sess.parse_sess.symbol_gallery.symbols.lock();
@@ -136,11 +144,17 @@ impl EarlyLintPass for NonAsciiIdents {
             FxHashMap::with_capacity_and_hasher(symbol_strs_and_spans.len(), Default::default());
         let mut str_buf = String::new();
         for (symbol_str, sp) in symbol_strs_and_spans {
+            let is_ascii = symbol_str.is_ascii();
             let skeleton = calc_skeleton(symbol_str.clone(), &mut str_buf);
             skeleton_map
                 .entry(skeleton)
-                .and_modify(|(existing_symbolstr, existing_span)| {
-                    cx.struct_span_lint(CONFUSABLE_IDENTS, sp, |lint| {
+                .and_modify(|(existing_symbolstr, existing_span, existing_is_ascii)| {
+                    let lint_kind = if *existing_is_ascii && is_ascii {
+                        CONFUSABLE_IDENTS_ASCII
+                    } else {
+                        CONFUSABLE_IDENTS
+                    };
+                    cx.struct_span_lint(lint_kind, sp, |lint| {
                         lint.build(&format!(
                             "identifier pair considered confusable between `{}` and `{}`",
                             existing_symbolstr, symbol_str
@@ -151,8 +165,13 @@ impl EarlyLintPass for NonAsciiIdents {
                         )
                         .emit();
                     });
+                    if *existing_is_ascii && !is_ascii {
+                        *existing_symbolstr = symbol_str.clone();
+                        *existing_span = sp;
+                        *existing_is_ascii = is_ascii;
+                    }
                 })
-                .or_insert((symbol_str, sp));
+                .or_insert((symbol_str, sp, is_ascii));
         }
     }
     fn check_ident(&mut self, cx: &EarlyContext<'_>, ident: ast::Ident) {
