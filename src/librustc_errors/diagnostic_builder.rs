@@ -430,6 +430,17 @@ macro_rules! struct_span_err {
 }
 
 #[macro_export]
+macro_rules! struct_span_warn {
+    ($session:expr, $span:expr, $code:ident, $($message:tt)*) => ({
+        $session.struct_span_warn_with_code(
+            $span,
+            &format!($($message)*),
+            $crate::error_code!($code),
+        )
+    })
+}
+
+#[macro_export]
 macro_rules! error_code {
     ($code:ident) => {{ $crate::DiagnosticId::Error(stringify!($code).to_owned()) }};
 }

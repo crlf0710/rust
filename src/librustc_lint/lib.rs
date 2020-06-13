@@ -30,6 +30,7 @@
 #![feature(bool_to_option)]
 #![feature(box_syntax)]
 #![feature(crate_visibility_modifier)]
+#![feature(drain_filter)]
 #![feature(never_type)]
 #![feature(nll)]
 #![feature(or_patterns)]

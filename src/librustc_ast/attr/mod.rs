@@ -23,6 +23,7 @@ use std::ops::DerefMut;
 
 pub struct Globals {
     used_attrs: Lock<GrowableBitSet<AttrId>>,
+    invalid_attrs: Lock<GrowableBitSet<AttrId>>,
     known_attrs: Lock<GrowableBitSet<AttrId>>,
     rustc_span_globals: rustc_span::Globals,
 }
@@ -33,6 +34,7 @@ impl Globals {
             // We have no idea how many attributes there will be, so just
             // initiate the vectors with 0 bits. We'll grow them as necessary.
             used_attrs: Lock::new(GrowableBitSet::new_empty()),
+            invalid_attrs: Lock::new(GrowableBitSet::new_empty()),
             known_attrs: Lock::new(GrowableBitSet::new_empty()),
             rustc_span_globals: rustc_span::Globals::new(edition),
         }
@@ -57,8 +59,23 @@ pub fn mark_used(attr: &Attribute) {
     });
 }
 
+pub fn mark_invalid(attr: &Attribute) {
+    debug!("marking {:?} as invalid", attr);
+    GLOBALS.with(|globals| {
+        globals.used_attrs.lock().insert(attr.id);
+        globals.invalid_attrs.lock().insert(attr.id);
+    });
+}
+
 pub fn is_used(attr: &Attribute) -> bool {
-    GLOBALS.with(|globals| globals.used_attrs.lock().contains(attr.id))
+    GLOBALS.with(|globals| {
+        globals.used_attrs.lock().contains(attr.id)
+            && !globals.invalid_attrs.lock().contains(attr.id)
+    })
+}
+
+pub fn is_invalid(attr: &Attribute) -> bool {
+    GLOBALS.with(|globals| globals.invalid_attrs.lock().contains(attr.id))
 }
 
 pub fn mark_known(attr: &Attribute) {

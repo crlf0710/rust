@@ -293,7 +293,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnusedAttributes {
             }
         }
 
-        if !attr::is_used(attr) {
+        if !attr::is_used(attr) && !attr::is_invalid(attr) {
             debug!("emitting warning for: {:?}", attr);
             cx.struct_span_lint(UNUSED_ATTRIBUTES, attr.span, |lint| {
                 lint.build("unused attribute").emit()

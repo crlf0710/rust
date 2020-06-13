@@ -1,12 +1,4 @@
-error[E0453]: allow(test_lint) overruled by outer forbid(test_lint)
-  --> $DIR/lint-plugin-forbid-cmdline.rs:10:9
-   |
-LL | #[allow(test_lint)]
-   |         ^^^^^^^^^ overruled by previous forbid
-   |
-   = note: `forbid` lint level was set on command line
-
-error[E0453]: allow(test_lint) overruled by outer forbid(test_lint)
+warning[E0453]: allow(test_lint) overruled by outer forbid(test_lint)
   --> $DIR/lint-plugin-forbid-cmdline.rs:10:9
    |
 LL | #[allow(test_lint)]
@@ -30,14 +22,6 @@ LL | fn lintme() { }
    |
    = note: requested on the command line with `-F test-lint`
 
-error[E0453]: allow(test_lint) overruled by outer forbid(test_lint)
-  --> $DIR/lint-plugin-forbid-cmdline.rs:10:9
-   |
-LL | #[allow(test_lint)]
-   |         ^^^^^^^^^ overruled by previous forbid
-   |
-   = note: `forbid` lint level was set on command line
-
-error: aborting due to 4 previous errors; 1 warning emitted
+error: aborting due to previous error; 2 warnings emitted
 
 For more information about this error, try `rustc --explain E0453`.

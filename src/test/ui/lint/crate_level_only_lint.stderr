@@ -1,0 +1,31 @@
+error: unused lint attribute: `uncommon_codepoints`
+  --> $DIR/crate_level_only_lint.rs:4:10
+   |
+LL | #![allow(uncommon_codepoints)]
+   |          ^^^^^^^^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> $DIR/crate_level_only_lint.rs:1:30
+   |
+LL | #![deny(uncommon_codepoints, unused_attributes)]
+   |                              ^^^^^^^^^^^^^^^^^
+   = note: allow(uncommon_codepoints) can be specified at crate level only.
+
+error: unused lint attribute: `uncommon_codepoints`
+  --> $DIR/crate_level_only_lint.rs:6:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: allow(uncommon_codepoints) can be specified at crate level only.
+
+error: unused lint attribute: `uncommon_codepoints`
+  --> $DIR/crate_level_only_lint.rs:11:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: allow(uncommon_codepoints) can be specified at crate level only.
+
+error: aborting due to 3 previous errors
+

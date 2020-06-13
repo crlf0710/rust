@@ -6,19 +6,13 @@
 
 #![forbid(unused, non_snake_case)]
 
-#[allow(unused_variables)] //~ ERROR overruled
-                           //~| ERROR overruled
-                           //~| ERROR overruled
-fn foo() {}
+#[allow(unused_variables)] //~ WARNING overruled
+fn foo() {} //~ ERROR function is never used: `foo`
 
-#[allow(unused)] //~ ERROR overruled
-                 //~| ERROR overruled
-                 //~| ERROR overruled
-fn bar() {}
+#[allow(unused)] //~ WARNING overruled
+fn bar() {} //~ ERROR function is never used: `bar`
 
-#[allow(nonstandard_style)] //~ ERROR overruled
-                            //~| ERROR overruled
-                            //~| ERROR overruled
+#[allow(nonstandard_style)] //~ WARNING overruled
 fn main() {
     println!("hello forbidden world")
 }

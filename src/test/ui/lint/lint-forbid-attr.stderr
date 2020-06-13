@@ -1,5 +1,5 @@
-error[E0453]: allow(deprecated) overruled by outer forbid(deprecated)
-  --> $DIR/lint-forbid-attr.rs:3:9
+warning[E0453]: allow(deprecated) overruled by outer forbid(deprecated)
+  --> $DIR/lint-forbid-attr.rs:4:9
    |
 LL | #![forbid(deprecated)]
    |           ---------- `forbid` level set here
@@ -7,24 +7,6 @@ LL |
 LL | #[allow(deprecated)]
    |         ^^^^^^^^^^ overruled by previous forbid
 
-error[E0453]: allow(deprecated) overruled by outer forbid(deprecated)
-  --> $DIR/lint-forbid-attr.rs:3:9
-   |
-LL | #![forbid(deprecated)]
-   |           ---------- `forbid` level set here
-LL | 
-LL | #[allow(deprecated)]
-   |         ^^^^^^^^^^ overruled by previous forbid
-
-error[E0453]: allow(deprecated) overruled by outer forbid(deprecated)
-  --> $DIR/lint-forbid-attr.rs:3:9
-   |
-LL | #![forbid(deprecated)]
-   |           ---------- `forbid` level set here
-LL | 
-LL | #[allow(deprecated)]
-   |         ^^^^^^^^^^ overruled by previous forbid
-
-error: aborting due to 3 previous errors
+warning: 1 warning emitted
 
 For more information about this error, try `rustc --explain E0453`.

@@ -5,7 +5,7 @@ use rustc_ast::attr;
 use rustc_ast::unwrap_or;
 use rustc_ast_pretty::pprust;
 use rustc_data_structures::fx::FxHashMap;
-use rustc_errors::{struct_span_err, Applicability};
+use rustc_errors::{struct_span_err, struct_span_warn, Applicability};
 use rustc_hir as hir;
 use rustc_hir::def_id::{CrateNum, LOCAL_CRATE};
 use rustc_hir::{intravisit, HirId};
@@ -29,7 +29,7 @@ fn lint_levels(tcx: TyCtxt<'_>, cnum: CrateNum) -> LintLevelMap {
     let mut builder = LintLevelMapBuilder { levels, tcx, store };
     let krate = tcx.hir().krate();
 
-    let push = builder.levels.push(&krate.item.attrs, &store);
+    let push = builder.levels.push(&krate.item.attrs, &store, true);
     builder.levels.register_id(hir::CRATE_HIR_ID);
     for macro_def in krate.exported_macros {
         builder.levels.register_id(macro_def.hir_id);
@@ -109,7 +109,12 @@ impl<'s> LintLevelsBuilder<'s> {
     ///   `#[allow]`
     ///
     /// Don't forget to call `pop`!
-    pub fn push(&mut self, attrs: &[ast::Attribute], store: &LintStore) -> BuilderPush {
+    pub fn push(
+        &mut self,
+        attrs: &[ast::Attribute],
+        store: &LintStore,
+        is_crate_node: bool,
+    ) -> BuilderPush {
         let mut specs = FxHashMap::default();
         let sess = self.sess;
         let bad_attr = |span| struct_span_err!(sess, span, E0452, "malformed lint attribute input");
@@ -170,6 +175,7 @@ impl<'s> LintLevelsBuilder<'s> {
                 }
             }
 
+            let mut attr_specs = vec![];
             for li in metas {
                 let meta_item = match li.meta_item() {
                     Some(meta_item) if meta_item.is_word() => meta_item,
@@ -216,7 +222,7 @@ impl<'s> LintLevelsBuilder<'s> {
                         let src = LintSource::Node(name, li.span(), reason);
                         for &id in ids {
                             self.check_gated_lint(id, attr.span);
-                            specs.insert(id, (level, src));
+                            attr_specs.push((id, (level, src)));
                         }
                     }
 
@@ -229,8 +235,8 @@ impl<'s> LintLevelsBuilder<'s> {
                                     li.span(),
                                     reason,
                                 );
-                                for id in ids {
-                                    specs.insert(*id, (level, src));
+                                for &id in ids {
+                                    attr_specs.push((id, (level, src)));
                                 }
                             }
                             Err((Some(ids), new_lint_name)) => {
@@ -266,8 +272,8 @@ impl<'s> LintLevelsBuilder<'s> {
                                     li.span(),
                                     reason,
                                 );
-                                for id in ids {
-                                    specs.insert(*id, (level, src));
+                                for &id in ids {
+                                    attr_specs.push((id, (level, src)));
                                 }
                             }
                             Err((None, _)) => {
@@ -331,50 +337,110 @@ impl<'s> LintLevelsBuilder<'s> {
                     }
                 }
             }
-        }
 
-        for (id, &(level, ref src)) in specs.iter() {
-            if level == Level::Forbid {
-                continue;
+            fn maybe_mark_attribute_invalid(attr: &ast::Attribute) -> bool {
+                if attr::is_invalid(attr) {
+                    return false;
+                }
+                attr::mark_invalid(attr);
+                return true;
             }
-            let forbid_src = match self.sets.get_lint_id_level(*id, self.cur, None) {
-                (Some(Level::Forbid), src) => src,
-                _ => continue,
-            };
-            let forbidden_lint_name = match forbid_src {
-                LintSource::Default => id.to_string(),
-                LintSource::Node(name, _, _) => name.to_string(),
-                LintSource::CommandLine(name) => name.to_string(),
-            };
-            let (lint_attr_name, lint_attr_span) = match *src {
-                LintSource::Node(name, span, _) => (name, span),
-                _ => continue,
-            };
-            let mut diag_builder = struct_span_err!(
-                self.sess,
-                lint_attr_span,
-                E0453,
-                "{}({}) overruled by outer forbid({})",
-                level.as_str(),
-                lint_attr_name,
-                forbidden_lint_name
-            );
-            diag_builder.span_label(lint_attr_span, "overruled by previous forbid");
-            match forbid_src {
-                LintSource::Default => {}
-                LintSource::Node(_, forbid_source_span, reason) => {
-                    diag_builder.span_label(forbid_source_span, "`forbid` level set here");
-                    if let Some(rationale) = reason {
-                        diag_builder.note(&rationale.as_str());
+
+            let mut suppress_forbid_overrule = false;
+            attr_specs.drain_filter(|&mut (id, (level, ref src))| {
+                if level == Level::Forbid {
+                    return false;
+                }
+                let forbid_src = match self.sets.get_lint_id_level(id, self.cur, None) {
+                    (Some(Level::Forbid), src) => src,
+                    _ => return false,
+                };
+                let forbidden_lint_name = match forbid_src {
+                    LintSource::Default => id.to_string(),
+                    LintSource::Node(name, _, _) => name.to_string(),
+                    LintSource::CommandLine(name) => name.to_string(),
+                };
+                let (lint_attr_name, lint_attr_span) = match *src {
+                    LintSource::Node(name, span, _) => (name, span),
+                    _ => return false,
+                };
+
+                if !suppress_forbid_overrule && maybe_mark_attribute_invalid(attr) {
+                    let mut diag_builder = struct_span_warn!(
+                        self.sess,
+                        lint_attr_span,
+                        E0453,
+                        "{}({}) overruled by outer forbid({})",
+                        level.as_str(),
+                        lint_attr_name,
+                        forbidden_lint_name
+                    );
+                    diag_builder.span_label(lint_attr_span, "overruled by previous forbid");
+                    match forbid_src {
+                        LintSource::Default => {}
+                        LintSource::Node(_, forbid_source_span, reason) => {
+                            diag_builder.span_label(forbid_source_span, "`forbid` level set here");
+                            if let Some(rationale) = reason {
+                                diag_builder.note(&rationale.as_str());
+                            }
+                        }
+                        LintSource::CommandLine(_) => {
+                            diag_builder.note("`forbid` lint level was set on command line");
+                        }
                     }
+                    diag_builder.emit();
                 }
-                LintSource::CommandLine(_) => {
-                    diag_builder.note("`forbid` lint level was set on command line");
+                // don't emit a separate warning for every lint in the group
+                suppress_forbid_overrule = true;
+                return true;
+            });
+
+            let mut suppress_crate_level_only_lint = false;
+            if !is_crate_node {
+                for &(id, (level, ref src)) in attr_specs.iter() {
+                    if !id.lint.crate_level_only {
+                        continue;
+                    }
+
+                    let (lint_attr_name, lint_attr_span) = match *src {
+                        LintSource::Node(name, span, _) => (name, span),
+                        _ => continue,
+                    };
+
+                    if !suppress_crate_level_only_lint && maybe_mark_attribute_invalid(attr) {
+                        let unused_attributes_lint = builtin::UNUSED_ATTRIBUTES;
+                        let (unused_attributes_level, unused_attributes_src) =
+                            self.sets.get_lint_level(
+                                unused_attributes_lint,
+                                self.cur,
+                                Some(&specs),
+                                self.sess,
+                            );
+                        struct_lint_level(
+                            self.sess,
+                            unused_attributes_lint,
+                            unused_attributes_level,
+                            unused_attributes_src,
+                            Some(lint_attr_span.into()),
+                            |lint| {
+                                let mut db = lint
+                                    .build(&format!("unused lint attribute: `{}`", lint_attr_name));
+                                db.note(&format!(
+                                    "{}({}) can be specified at crate level only.",
+                                    level.as_str(),
+                                    lint_attr_name
+                                ));
+                                db.emit();
+                            },
+                        );
+                    }
+
+                    // don't emit a separate warning for every lint in the group
+                    suppress_crate_level_only_lint = true;
                 }
             }
-            diag_builder.emit();
-            // don't set a separate error for every lint in the group
-            break;
+
+            specs.extend(attr_specs.into_iter());
         }
 
         let prev = self.cur;
@@ -449,7 +515,8 @@ impl LintLevelMapBuilder<'_, '_> {
     where
         F: FnOnce(&mut Self),
     {
-        let push = self.levels.push(attrs, self.store);
+        let is_crate_hir = id == hir::CRATE_HIR_ID;
+        let push = self.levels.push(attrs, self.store, is_crate_hir);
         if push.changed {
             self.levels.register_id(id);
         }

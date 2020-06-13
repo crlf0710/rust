@@ -9,9 +9,7 @@
 fn lintme() { } //~ ERROR item is named 'lintme'
 
 #[allow(test_lint)]
-//~^ ERROR allow(test_lint) overruled by outer forbid(test_lint)
-//~| ERROR allow(test_lint) overruled by outer forbid(test_lint)
-//~| ERROR allow(test_lint) overruled by outer forbid(test_lint)
+//~^ WARNING allow(test_lint) overruled by outer forbid(test_lint)
 pub fn main() {
     lintme();
 }
