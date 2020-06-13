@@ -1,0 +1,57 @@
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:4:10
+   |
+LL | #![allow(uncommon_codepoints)]
+   |          ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:6:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:11:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:4:10
+   |
+LL | #![allow(uncommon_codepoints)]
+   |          ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:6:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:11:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:4:10
+   |
+LL | #![allow(uncommon_codepoints)]
+   |          ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:6:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error[E0763]: allow(uncommon_codepoints) can be specified at crate level only.
+  --> $DIR/crate_level_only_lint.rs:11:9
+   |
+LL | #[allow(uncommon_codepoints)]
+   |         ^^^^^^^^^^^^^^^^^^^
+
+error: aborting due to 9 previous errors
+
+For more information about this error, try `rustc --explain E0763`.

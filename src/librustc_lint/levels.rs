@@ -29,7 +29,7 @@ fn lint_levels(tcx: TyCtxt<'_>, cnum: CrateNum) -> LintLevelMap {
     let mut builder = LintLevelMapBuilder { levels, tcx, store };
     let krate = tcx.hir().krate();
 
-    let push = builder.levels.push(&krate.item.attrs, &store);
+    let push = builder.levels.push(&krate.item.attrs, &store, true);
     builder.levels.register_id(hir::CRATE_HIR_ID);
     for macro_def in krate.exported_macros {
         builder.levels.register_id(macro_def.hir_id);
@@ -109,7 +109,12 @@ impl<'s> LintLevelsBuilder<'s> {
     ///   `#[allow]`
     ///
     /// Don't forget to call `pop`!
-    pub fn push(&mut self, attrs: &[ast::Attribute], store: &LintStore) -> BuilderPush {
+    pub fn push(
+        &mut self,
+        attrs: &[ast::Attribute],
+        store: &LintStore,
+        is_crate_node: bool,
+    ) -> BuilderPush {
         let mut specs = FxHashMap::default();
         let sess = self.sess;
         let bad_attr = |span| struct_span_err!(sess, span, E0452, "malformed lint attribute input");
@@ -333,6 +338,30 @@ impl<'s> LintLevelsBuilder<'s> {
             }
         }
 
+        if !is_crate_node {
+            for (id, &(level, ref src)) in specs.iter() {
+                if !id.lint.crate_level_only {
+                    continue;
+                }
+
+                let (lint_attr_name, lint_attr_span) = match *src {
+                    LintSource::Node(name, span, _) => (name, span),
+                    _ => continue,
+                };
+                let mut diag_builder = struct_span_err!(
+                    self.sess,
+                    lint_attr_span,
+                    E0763,
+                    "{}({}) can be specified at crate level only.",
+                    level.as_str(),
+                    lint_attr_name,
+                );
+                diag_builder.emit();
+                // don't set a separate error for every lint in the group
+                break;
+            }
+        }
+
         for (id, &(level, ref src)) in specs.iter() {
             if level == Level::Forbid {
                 continue;
@@ -449,7 +478,8 @@ impl LintLevelMapBuilder<'_, '_> {
     where
         F: FnOnce(&mut Self),
     {
-        let push = self.levels.push(attrs, self.store);
+        let is_crate_hir = id == hir::CRATE_HIR_ID;
+        let push = self.levels.push(attrs, self.store, is_crate_hir);
         if push.changed {
             self.levels.register_id(id);
         }
