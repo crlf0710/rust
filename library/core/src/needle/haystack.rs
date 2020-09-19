@@ -88,6 +88,18 @@ pub unsafe trait Hay {
     /// Implementation must ensure that if `j = self.next_index(i)`, then `j`
     /// is also a valid index satisfying `j > i`.
     ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use pattern_3::Hay;
+    ///
+    /// let sample = "A→😀";
+    /// unsafe {
+    ///     assert_eq!(sample.next_index(0), 1);
+    ///     assert_eq!(sample.next_index(1), 4);
+    ///     assert_eq!(sample.next_index(4), 8);
+    /// }
+    /// ```
     unsafe fn next_index(&self, index: Self::Index) -> Self::Index;
 
     /// Returns the previous immediate index in this hay.
@@ -99,6 +111,19 @@ pub unsafe trait Hay {
     ///
     /// Implementation must ensure that if `j = self.prev_index(i)`, then `j`
     /// is also a valid index satisfying `j < i`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use pattern_3::Hay;
+    ///
+    /// let sample = "A→😀";
+    /// unsafe {
+    ///     assert_eq!(sample.prev_index(8), 4);
+    ///     assert_eq!(sample.prev_index(4), 1);
+    ///     assert_eq!(sample.prev_index(1), 0);
+    /// }
+    /// ```
     unsafe fn prev_index(&self, index: Self::Index) -> Self::Index;
 
     /// Obtains a child hay by slicing `self`.
@@ -213,6 +238,16 @@ where
     /// case, one should derive an entirely new index range from `self`, e.g.
     /// returning `self.start_index()..self.end_index()`.
     ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// #![feature(needle)]
+    /// use std::needle::Haystack;
+    ///
+    /// let hay = b"This is a sample haystack";
+    /// let this = hay[2..23][3..19].to_vec();
+    /// assert_eq!(&*this, &hay[this.restore_range(2..23, 3..19)]);
+    /// ```
     fn restore_range(
         &self,
         original: Range<<Self::Target as Hay>::Index>,
@@ -369,6 +404,42 @@ where
 ///
 /// It can be considered as a tuple `(H, Range<H::Target::Index>)`
 /// where the range is guaranteed to be valid for the haystack.
+///
+/// # Examples
+///
+/// ```
+/// #![feature(needle)]
+/// use std::needle::Span;
+///
+/// let orig_str = "Hello世界";
+/// let orig_span = Span::<&str>::from(orig_str);
+///
+/// // slice a span.
+/// let span = unsafe { orig_span.slice_unchecked(3..8) };
+///
+/// // further slicing (note the range is relative to the original span)
+/// let subspan = unsafe { span.slice_unchecked(4..8) };
+///
+/// // obtains the substring.
+/// let substring = subspan.into();
+/// assert_eq!(substring, "o世");
+/// ```
+///
+/// Visualizing the spans:
+///
+/// ```text
+///
+/// 0   1   2   3   4   5   6   7   8   9  10  11
+/// +---+---+---+---+---+---+---+---+---+---+---+
+/// | H | e | l | l | o | U+4E16    | U+754C    |    orig_str
+/// +---+---+---+---+---+---+---+---+---+---+---+
+///
+/// ^___________________________________________^    orig_span = (orig_str, 0..11)
+///
+///             ^___________________^                span = (orig_str, 3..8)
+///
+///                 ^_______________^                subspan = (orig_str, 4..8)
+/// ```
 #[derive(Debug, Clone)]
 pub struct Span<H: Haystack>
 where
@@ -468,7 +539,19 @@ where
     ///
     /// # Safety
     ///
-    /// `subrange` must be a valid range relative to `self.borrow()`.
+    /// `subrange` must be a valid range relative to `self.borrow()`. A safe
+    /// usage is like:
+    ///
+    /// ```rust
+    /// # #![feature(needle)]
+    /// # use std::needle::{Span, Needle, Searcher};
+    /// # let span = Span::from("foo");
+    /// # let mut searcher = <&str as Needle<&str>>::into_searcher("o");
+    /// # (|| -> Option<()> {
+    /// let range = searcher.search(span.borrow())?;
+    /// let [left, middle, right] = unsafe { span.split_around(range) };
+    /// # Some(()) })();
+    /// ```
     #[inline]
     pub unsafe fn split_around(self, subrange: Range<<H::Target as Hay>::Index>) -> [Self; 3] {
         let self_range = self.haystack.borrow_range(self.range.clone());

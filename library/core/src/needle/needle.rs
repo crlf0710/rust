@@ -115,6 +115,34 @@ pub unsafe trait Searcher<A: Hay + ?Sized> {
     /// the position of the current slice and the content around the slice.
     /// Regex components like the start-/end-of-text anchors `^`/`$`
     /// and word boundary `\b` are primary examples.
+    ///
+    /// # Examples
+    ///
+    /// Search for the locations of a substring inside a string, using the
+    /// searcher primitive.
+    ///
+    /// ```
+    /// #![feature(needle)]
+    /// use std::needle::{Searcher, Needle, Span};
+    ///
+    /// let mut searcher = Needle::<&str>::into_searcher("::");
+    /// let span = Span::from("lion::tiger::leopard");
+    /// //                     ^   ^      ^        ^
+    /// // string indices:     0   4     11       20
+    ///
+    /// // found the first "::".
+    /// assert_eq!(searcher.search(span.clone()), Some(4..6));
+    ///
+    /// // slice the span to skip the first match.
+    /// let span = unsafe { span.slice_unchecked(6..20) };
+    ///
+    /// // found the second "::".
+    /// assert_eq!(searcher.search(span.clone()), Some(11..13));
+    ///
+    /// // should find nothing now.
+    /// let span = unsafe { span.slice_unchecked(13..20) };
+    /// assert_eq!(searcher.search(span.clone()), None);
+    /// ```
     fn search(&mut self, span: Span<&A>) -> Option<Range<A::Index>>;
 }
 
@@ -145,6 +173,31 @@ pub unsafe trait Consumer<A: Hay + ?Sized> {
     ///
     /// If the needle cannot be found at the beginning of the span, this method
     /// should return `None`.
+    ///
+    /// # Examples
+    ///
+    /// Consumes ASCII characters from the beginning.
+    ///
+    /// ```
+    /// #![feature(needle)]
+    /// use std::needle::{Consumer, Needle, Span};
+    ///
+    /// let mut consumer = Needle::<&str>::into_consumer(|c: char| c.is_ascii());
+    /// let span = Span::from("Hi😋!!");
+    ///
+    /// // consumes the first ASCII character
+    /// assert_eq!(consumer.consume(span.clone()), Some(1));
+    ///
+    /// // slice the span to skip the first match.
+    /// let span = unsafe { span.slice_unchecked(1..8) };
+    ///
+    /// // matched the second ASCII character
+    /// assert_eq!(consumer.consume(span.clone()), Some(2));
+    ///
+    /// // should match nothing now.
+    /// let span = unsafe { span.slice_unchecked(2..8) };
+    /// assert_eq!(consumer.consume(span.clone()), None);
+    /// ```
     fn consume(&mut self, span: Span<&A>) -> Option<A::Index>;
 
     /// Repeatedly removes prefixes of the hay which matches the needle.
@@ -157,6 +210,19 @@ pub unsafe trait Consumer<A: Hay + ?Sized> {
     /// A fast generic implementation in terms of
     /// [`.consume()`](Consumer::consume) is provided by default. Nevertheless,
     /// many needles allow a higher-performance specialization.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// #![feature(needle)]
+    /// use std::needle::{Consumer, Needle, Span};
+    ///
+    /// let mut consumer = Needle::<&str>::into_consumer('x');
+    /// assert_eq!(consumer.trim_start("xxxyy"), 3);
+    ///
+    /// let mut consumer = Needle::<&str>::into_consumer('x');
+    /// assert_eq!(consumer.trim_start("yyxxx"), 0);
+    /// ```
     #[inline]
     fn trim_start(&mut self, hay: &A) -> A::Index {
         let mut offset = hay.start_index();
@@ -204,6 +270,34 @@ pub unsafe trait ReverseSearcher<A: Hay + ?Sized>: Searcher<A> {
     /// restricted range from the span.
     ///
     /// If the needle is not found, this method should return `None`.
+    ///
+    /// # Examples
+    ///
+    /// Search for the locations of a substring inside a string, using the
+    /// searcher primitive.
+    ///
+    /// ```
+    /// #![feature(needle)]
+    /// use std::needle::{ReverseSearcher, Needle, Span};
+    ///
+    /// let mut searcher = Needle::<&str>::into_searcher("::");
+    /// let span = Span::from("lion::tiger::leopard");
+    /// //                     ^   ^      ^
+    /// // string indices:     0   4     11
+    ///
+    /// // found the last "::".
+    /// assert_eq!(searcher.rsearch(span.clone()), Some(11..13));
+    ///
+    /// // slice the span to skip the last match.
+    /// let span = unsafe { span.slice_unchecked(0..11) };
+    ///
+    /// // found the second to last "::".
+    /// assert_eq!(searcher.rsearch(span.clone()), Some(4..6));
+    ///
+    /// // should found nothing now.
+    /// let span = unsafe { span.slice_unchecked(0..4) };
+    /// assert_eq!(searcher.rsearch(span.clone()), None);
+    /// ```
     fn rsearch(&mut self, span: Span<&A>) -> Option<Range<A::Index>>;
 }
 
@@ -231,6 +325,31 @@ pub unsafe trait ReverseConsumer<A: Hay + ?Sized>: Consumer<A> {
     ///
     /// If the needle cannot be found at the end of the span, this method
     /// should return `None`.
+    ///
+    /// # Examples
+    ///
+    /// Consumes ASCII characters from the end.
+    ///
+    /// ```
+    /// #![feature(needle)]
+    /// use std:needle::{ReverseConsumer, Needle, Span};
+    ///
+    /// let mut consumer = Needle::<&str>::into_consumer(|c: char| c.is_ascii());
+    /// let span = Span::from("Hi😋!!");
+    ///
+    /// // consumes the last ASCII character
+    /// assert_eq!(consumer.rconsume(span.clone()), Some(7));
+    ///
+    /// // slice the span to skip the first match.
+    /// let span = unsafe { span.slice_unchecked(0..7) };
+    ///
+    /// // matched the second to last ASCII character
+    /// assert_eq!(consumer.rconsume(span.clone()), Some(6));
+    ///
+    /// // should match nothing now.
+    /// let span = unsafe { span.slice_unchecked(0..6) };
+    /// assert_eq!(consumer.rconsume(span.clone()), None);
+    /// ```
     fn rconsume(&mut self, hay: Span<&A>) -> Option<A::Index>;
 
     /// Repeatedly removes suffixes of the hay which matches the needle.
@@ -241,6 +360,19 @@ pub unsafe trait ReverseConsumer<A: Hay + ?Sized>: Consumer<A> {
     /// A fast generic implementation in terms of
     /// [`.rconsume()`](ReverseConsumer::rconsume) is provided by default.
     /// Nevertheless, many needles allow a higher-performance specialization.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// #![feature(needle)]
+    /// use std::needle::{ReverseConsumer, Needle, Span};
+    ///
+    /// let mut consumer = Needle::<&str>::into_consumer('x');
+    /// assert_eq!(consumer.trim_end("yyxxx"), 2);
+    ///
+    /// let mut consumer = Needle::<&str>::into_consumer('x');
+    /// assert_eq!(consumer.trim_end("xxxyy"), 5);
+    /// ```
     #[inline]
     fn trim_end(&mut self, hay: &A) -> A::Index {
         let mut offset = hay.end_index();
@@ -275,6 +407,37 @@ pub unsafe trait ReverseConsumer<A: Hay + ?Sized>: Consumer<A> {
 ///     [`rsplit_terminator`](super::ext::rsplit_terminator)
 /// * [`splitn`](super::ext::splitn) /
 ///     [`rsplitn`](super::ext::rsplitn)
+///
+/// # Examples
+///
+/// The searcher of a character implements `DoubleEndedSearcher`, while that of
+/// a string does not.
+///
+/// `match_indices` and `rmatch_indices` are reverse of each other only for a
+/// `DoubleEndedSearcher`.
+///
+/// ```rust
+/// #![feature(needle)]
+/// use std::needle::ext::{match_indices, rmatch_indices};
+///
+/// // `match_indices` and `rmatch_indices` are exact reverse of each other for a `char` needle.
+/// let forward = match_indices("xxxxx", 'x').collect::<Vec<_>>();
+/// let mut rev_backward = rmatch_indices("xxxxx", 'x').collect::<Vec<_>>();
+/// rev_backward.reverse();
+///
+/// assert_eq!(forward, vec![(0, "x"), (1, "x"), (2, "x"), (3, "x"), (4, "x")]);
+/// assert_eq!(rev_backward, vec![(0, "x"), (1, "x"), (2, "x"), (3, "x"), (4, "x")]);
+/// assert_eq!(forward, rev_backward);
+///
+/// // this property does not exist on a `&str` needle in general.
+/// let forward = match_indices("xxxxx", "xx").collect::<Vec<_>>();
+/// let mut rev_backward = rmatch_indices("xxxxx", "xx").collect::<Vec<_>>();
+/// rev_backward.reverse();
+///
+/// assert_eq!(forward, vec![(0, "xx"), (2, "xx")]);
+/// assert_eq!(rev_backward, vec![(1, "xx"), (3, "xx")]);
+/// assert_ne!(forward, rev_backward);
+/// ```
 pub unsafe trait DoubleEndedSearcher<A: Hay + ?Sized>: ReverseSearcher<A> {}
 
 /// A consumer which can be searched from both end with consistent results.
@@ -286,6 +449,32 @@ pub unsafe trait DoubleEndedSearcher<A: Hay + ?Sized>: ReverseSearcher<A> {}
 /// The `trim` function is implemented by calling
 /// [`trim_start`](super::ext::trim_start) and [`trim_end`](super::ext::trim_end)
 /// together. This trait encodes the fact that we can call these two functions in any order.
+///
+/// # Examples
+///
+/// The consumer of a character implements `DoubleEndedConsumer`, while that of
+/// a string does not. `trim` is implemented only for a `DoubleEndedConsumer`.
+///
+/// ```rust
+/// #![feature(needle)]
+/// use std::needle::ext::{trim_start, trim_end, trim};
+///
+/// // for a `char`, we get the same trim result no matter which function is called first.
+/// let trim_start_first = trim_end(trim_start("xyxyx", 'x'), 'x');
+/// let trim_end_first = trim_start(trim_end("xyxyx", 'x'), 'x');
+/// let trim_together = trim("xyxyx", 'x');
+/// assert_eq!(trim_start_first, "yxy");
+/// assert_eq!(trim_end_first, "yxy");
+/// assert_eq!(trim_together, "yxy");
+///
+/// // this property does not exist for a `&str` in general.
+/// let trim_start_first = trim_end(trim_start("xyxyx", "xyx"), "xyx");
+/// let trim_end_first = trim_start(trim_end("xyxyx", "xyx"), "xyx");
+/// // let trim_together = trim("xyxyx", 'x'); // cannot be defined
+/// assert_eq!(trim_start_first, "yx");
+/// assert_eq!(trim_end_first, "xy");
+/// // assert_eq!(trim_together, /*????*/); // cannot be defined
+/// ```
 pub unsafe trait DoubleEndedConsumer<A: Hay + ?Sized>: ReverseConsumer<A> {}
 
 /// A needle, a type which can be converted into a searcher.
