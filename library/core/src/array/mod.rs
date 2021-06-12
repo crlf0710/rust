@@ -366,7 +366,7 @@ impl<T: Ord, const N: usize> Ord for [T; N] {
 // The Default impls cannot be done with const generics because `[T; 0]` doesn't
 // require Default to be implemented, and having different impl blocks for
 // different numbers isn't supported yet.
-
+#[cfg(bootstrap)]
 macro_rules! array_impl_default {
     {$n:expr, $t:ident $($ts:ident)*} => {
         #[stable(since = "1.4.0", feature = "array_default")]
@@ -385,7 +385,71 @@ macro_rules! array_impl_default {
     };
 }
 
+#[cfg(bootstrap)]
 array_impl_default! {32, T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T T}
+
+/// Implementation detail for defining array default condition.
+mod array_default_impl {
+    use crate::mem::MaybeUninit;
+
+    /// Implementation detail for defining array default condition.
+    #[unstable(feature = "array_default_impl", issue = "none")]
+    pub trait ArrayDefaultImpl {
+        type Output;
+
+        fn default_array() -> Self::Output;
+    }
+
+    /// Implementation detail for defining array default condition.
+    #[unstable(feature = "array_default_impl", issue = "none")]
+    #[derive(Debug)]
+    pub struct ArrayDefaultImplDispatch<T, const LEN: usize, const IS_EMPTY: bool>(
+        crate::marker::PhantomData<T>,
+    );
+
+    #[unstable(feature = "array_default_impl", issue = "none")]
+    impl<T, const L: usize> ArrayDefaultImpl for ArrayDefaultImplDispatch<T, L, true> {
+        type Output = [T; L];
+
+        fn default_array() -> [T; L] {
+            assert_eq!(L, 0);
+            unsafe {
+                // SAFETY: empty array is ZST
+                crate::mem::zeroed()
+            }
+        }
+    }
+
+    #[unstable(feature = "array_default_impl", issue = "none")]
+    impl<T, const L: usize> ArrayDefaultImpl for ArrayDefaultImplDispatch<T, L, false>
+    where
+        T: Default,
+    {
+        type Output = [T; L];
+
+        fn default_array() -> [T; L] {
+            let mut result = MaybeUninit::uninit_array();
+            for element in &mut result[..] {
+                *element = MaybeUninit::new(T::default());
+            }
+            unsafe { MaybeUninit::array_assume_init(result) }
+        }
+    }
+}
+
+#[cfg(not(bootstrap))]
+use array_default_impl::{ArrayDefaultImpl, ArrayDefaultImplDispatch};
+
+#[cfg(not(bootstrap))]
+#[stable(feature = "array_default", since = "1.55.0")]
+impl<T, const LEN: usize> Default for [T; LEN]
+where
+    ArrayDefaultImplDispatch<T, LEN, { LEN == 0 }>: ArrayDefaultImpl<Output = Self>,
+{
+    fn default() -> Self {
+        <ArrayDefaultImplDispatch<T, LEN, { LEN == 0 }> as ArrayDefaultImpl>::default_array()
+    }
+}
 
 #[lang = "array"]
 impl<T, const N: usize> [T; N] {

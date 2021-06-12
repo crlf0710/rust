@@ -71,6 +71,8 @@
 #![feature(const_assert_type)]
 #![feature(const_discriminant)]
 #![feature(const_cell_into_inner)]
+#![feature(const_evaluatable_checked)]
+#![feature(const_generics)]
 #![feature(const_intrinsic_copy)]
 #![feature(const_intrinsic_forget)]
 #![feature(const_float_classify)]
@@ -167,6 +169,7 @@
 #![feature(int_error_matching)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![deny(or_patterns_back_compat)]
+#![allow(incomplete_features)]
 
 // allow using `core::` in intra-doc links
 #[allow(unused_extern_crates)]
