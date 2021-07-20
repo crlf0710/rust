@@ -17,15 +17,16 @@ pub enum VtblEntry<'tcx> {
 
 impl<'tcx> fmt::Debug for VtblEntry<'tcx> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // We want to call `Display` on `Instance` and `PolyTraitRef`,
+        // so we implement this manually.
         match self {
-            VtblEntry::MetadataDropInPlace => write!(f, "MetadataDropInPlace")?,
-            VtblEntry::MetadataSize => write!(f, "MetadataSize")?,
-            VtblEntry::MetadataAlign => write!(f, "MetadataAlign")?,
-            VtblEntry::Vacant => write!(f, "Vacant")?,
-            VtblEntry::Method(instance) => write!(f, "Method: {}", instance)?,
-            VtblEntry::TraitVPtr(trait_ref) => write!(f, "TraitVPtr: {}", trait_ref)?,
+            VtblEntry::MetadataDropInPlace => write!(f, "MetadataDropInPlace"),
+            VtblEntry::MetadataSize => write!(f, "MetadataSize"),
+            VtblEntry::MetadataAlign => write!(f, "MetadataAlign"),
+            VtblEntry::Vacant => write!(f, "Vacant"),
+            VtblEntry::Method(instance) => write!(f, "Method({})", instance),
+            VtblEntry::TraitVPtr(trait_ref) => write!(f, "TraitVPtr({})", trait_ref),
         }
-        Ok(())
     }
 }
 

@@ -614,9 +614,9 @@ fn prepare_vtable_segments<'tcx, T>(
     }
 }
 
-fn dump_vtable_entries<'tcx>(tcx: TyCtxt<'tcx>, entries: &[VtblEntry<'tcx>]) {
-    let msg = format!("Vtable Entries: {:#?}", entries);
-    tcx.sess.struct_span_err(rustc_span::DUMMY_SP, &msg).emit();
+fn dump_vtable_entries<'tcx>(tcx: TyCtxt<'tcx>, sp: Span, trait_ref: ty::PolyTraitRef<'tcx>, entries: &[VtblEntry<'tcx>]) {
+    let msg = format!("Vtable entries for `{}`: {:#?}", trait_ref, entries);
+    tcx.sess.struct_span_err(sp, &msg).emit();
 }
 
 /// Given a trait `trait_ref`, iterates the vtable entries
