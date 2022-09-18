@@ -599,15 +599,11 @@ pub mod alloc;
 mod panicking;
 mod personality;
 
-#[path = "../../backtrace/src/lib.rs"]
-#[allow(dead_code, unused_attributes)]
-mod backtrace_rs;
-
 // Re-export macros defined in libcore.
 #[stable(feature = "rust1", since = "1.0.0")]
 #[allow(deprecated, deprecated_in_future)]
 pub use core::{
-    assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne, matches, todo, r#try,
+    assert_eq, assert_ne, debug_assert, debug_assert_eq, debug_assert_ne, matches, r#try, todo,
     unimplemented, unreachable, write, writeln,
 };
 

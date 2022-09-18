@@ -1,4 +1,4 @@
-use crate::backtrace_rs::{self, BacktraceFmt, BytesOrWideString, PrintFmt};
+use crate::backtrace::imp::{BacktraceFmt, BytesOrWideString, PrintFmt};
 use crate::borrow::Cow;
 /// Common code for printing the backtrace in the same way across the different
 /// supported platforms.
@@ -63,14 +63,14 @@ unsafe fn _print_fmt(fmt: &mut fmt::Formatter<'_>, print_fmt: PrintFmt) -> fmt::
     let mut res = Ok(());
     // Start immediately if we're not using a short backtrace.
     let mut start = print_fmt != PrintFmt::Short;
-    backtrace_rs::trace_unsynchronized(|frame| {
+    crate::backtrace::imp::trace_unsynchronized(|frame| {
         if print_fmt == PrintFmt::Short && idx > MAX_NB_FRAMES {
             return false;
         }
 
         let mut hit = false;
         let mut stop = false;
-        backtrace_rs::resolve_frame_unsynchronized(frame, |symbol| {
+        crate::backtrace::imp::resolve_frame_unsynchronized(frame, |symbol| {
             hit = true;
             if print_fmt == PrintFmt::Short {
                 if let Some(sym) = symbol.name().and_then(|s| s.as_str()) {
