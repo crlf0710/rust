@@ -20,7 +20,7 @@ use crate::{
     LazyFallbackBundle, Level, MultiSpan, SubDiagnostic, SubstitutionHighlight, SuggestionStyle,
 };
 
-use rustc_lint_defs::pluralize;
+use crate::pluralize;
 
 use rustc_data_structures::fx::{FxHashMap, FxIndexMap};
 use rustc_data_structures::sync::Lrc;
