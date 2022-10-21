@@ -4,7 +4,7 @@
 
 use itertools::Itertools;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
-use rustc_errors::{pluralize, Applicability, MultiSpan};
+use rustc_errors::{build_list_separated_with_and, pluralize, Applicability, MultiSpan};
 use rustc_hir as hir;
 use rustc_hir::def::{CtorOf, DefKind, Res};
 use rustc_hir::def_id::{DefId, LocalDefId};
@@ -713,24 +713,16 @@ impl<'tcx> DeadVisitor<'tcx> {
                 .collect();
 
             let descr = tcx.def_kind(first_id).descr(first_id.to_def_id());
+
             let span_len = dead_codes.len();
-            let names = match &names[..] {
-                _ if span_len > 6 => String::new(),
-                [name] => format!("`{name}` "),
-                [names @ .., last] => {
-                    format!(
-                        "{} and `{last}` ",
-                        names.iter().map(|name| format!("`{name}`")).join(", ")
-                    )
-                }
-                [] => unreachable!(),
-            };
-            let msg = format!(
-                "{these}{descr}{s} {names}{are} never {participle}",
-                these = if span_len > 6 { "multiple " } else { "" },
-                s = pluralize!(span_len),
-                are = pluralize!("is", span_len),
+            let names = build_list_separated_with_and(
+                names.iter().map(|name| format!("`{name}`")),
+                names.len(),
+                descr,
+                6,
             );
+            let msg =
+                format!("{names} {are} never {participle}", are = pluralize!("is", span_len),);
 
             tcx.struct_span_lint_hir(
                 if is_positional {

@@ -76,7 +76,7 @@ pub(crate) use ParseResult::*;
 use crate::mbe::{KleeneOp, TokenTree};
 
 use rustc_ast::token::{self, DocComment, Nonterminal, NonterminalKind, Token};
-use rustc_lint_defs::pluralize;
+use rustc_errors::pluralize;
 use rustc_parse::parser::{NtOrTt, Parser};
 use rustc_span::symbol::MacroRulesNormalizedIdent;
 use rustc_span::Span;

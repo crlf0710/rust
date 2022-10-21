@@ -13,6 +13,8 @@ use fluent_syntax::parser::ParserError;
 use rustc_data_structures::sync::Lrc;
 use rustc_macros::{fluent_messages, Decodable, Encodable};
 use rustc_span::Span;
+use writeable::Writeable;
+
 use std::borrow::Cow;
 use std::error::Error;
 use std::fmt;
@@ -537,5 +539,49 @@ impl From<Span> for MultiSpan {
 impl From<Vec<Span>> for MultiSpan {
     fn from(spans: Vec<Span>) -> MultiSpan {
         MultiSpan::from_spans(spans)
+    }
+}
+
+#[macro_export]
+macro_rules! pluralize {
+    ($x:expr) => {
+        if $x != 1 { "s" } else { "" }
+    };
+    ("has", $x:expr) => {
+        if $x == 1 { "has" } else { "have" }
+    };
+    ("is", $x:expr) => {
+        if $x == 1 { "is" } else { "are" }
+    };
+    ("was", $x:expr) => {
+        if $x == 1 { "was" } else { "were" }
+    };
+    ("this", $x:expr) => {
+        if $x == 1 { "this" } else { "these" }
+    };
+}
+
+pub fn build_list_separated_with_and<T: writeable::Writeable>(
+    values: impl Iterator<Item = T> + Clone,
+    value_count: usize,
+    descr: &str,
+    spread_limit: usize,
+) -> String {
+    assert!(value_count > 0);
+
+    if value_count > spread_limit {
+        format!("multiple {descr}{s}", s = pluralize!(value_count),)
+    } else {
+        let data_provider = rustc_baked_icu_data::baked_data_provider();
+        let locale = icu_locid::locale!("en").into();
+        let list_formatter = icu_list::ListFormatter::try_new_and_with_length_unstable(
+            &data_provider,
+            &locale,
+            icu_list::ListLength::Wide,
+        )
+        .expect("Failed to create list formatter");
+        let mut result = format!("{descr}{s} ", s = pluralize!(value_count),);
+        list_formatter.format(values).write_to(&mut result).expect("Failed to write list");
+        result
     }
 }
